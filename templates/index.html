@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://vjs.zencdn.net/7.19.2/video-js.css" rel="stylesheet" />
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+        <!-- <link rel="stylesheet" href="static/css/main.css"> -->
+    </head>
+    <body>
+        <header class="p-3 bg-dark text-white">
+            <div class="container">
+                <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+                    <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+                        <li><a href="/" class="nav-link px-2 text-white">Detector</a></li>
+                    </ul>
+                    
+                    <div class="text-end">
+                        <a href="https://github.com/Kulallador/dlschool_project" class="nav-link px-2 text-white">Github</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <div class="px-4 pt-5 my-5 text-center border-bottom">
+            <div id="previewLabel">
+                <h1 class="display-4 fw-bold">EmotionDetect</h1>
+                <p class="lead mb-4">Выберите видео для классификации</p>
+            </div>
+            <div id="loadDiv" hidden="true">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p>Загрузка...</p>
+            </div>
+            <div class="text-danger" id="errorDiv" hidden="true" >
+                <p id="errorText">Ошибка</p>
+            </div>
+            <div class="justify-content-sm-center" id="contentDiv" hidden="true">
+                <div class="container px-5 d-md-flex justify-content-center" >
+                    <video id="my-video" class="video-js" controls preload="none" width="640" height="264" data-setup="{}">
+                        <source src="#"  type="video/mp4" id="sourceVideo"/>
+                    </video>
+                </div>
+                <p id="resultClassification">Angry</p>
+            </div>
+            <div class="col-lg-6 mx-auto">
+                <form id="formElem">
+                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mb-5">
+                        <div class="md-3">
+                            <input type="file" name="myFile" class="form-control" id="myFile">
+                        </div>
+                        <button id="submitBtn" type="submit" class="btn btn-outline-success">Отправить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script src="https://vjs.zencdn.net/7.19.2/video.min.js"></script>
+        <script>
+            var videoPlayer = videojs("my-video") 
+
+            formElem.onsubmit = async (e) => {
+                e.preventDefault();
+
+                contentDiv = document.getElementById("contentDiv");
+
+                document.getElementById("previewLabel").hidden = true;
+                document.getElementById("loadDiv").hidden = false;
+                document.getElementById("errorDiv").hidden = true;
+                contentDiv.hidden = true;
+                console.log("loadDiv ", + document.getElementById("loadDiv").hidden)
+
+                document.getElementById("submitBtn").disabled = true
+                let response = await fetch("/emotion", {
+                    method: 'POST',
+                    body: new FormData(formElem)
+                });
+                document.getElementById("submitBtn").disabled = false
+
+                let result = await response.json(); 
+
+                document.getElementById("loadDiv").hidden = true;
+
+                if (result.error != null) {
+                    // alert(result.error);
+                    document.getElementById("errorDiv").hidden = false;
+                    document.getElementById("errorText").textContent = result.error;
+                    return false;
+                }
+
+
+                contentDiv.hidden = false;
+                
+                videoPlayer.src({type:"video/mp4", src: result.url});
+                videoPlayer.p
+                
+                document.getElementById("resultClassification").textContent = result.emotion;
+
+                return false;
+            }
+
+
+        </script>
+        <!-- <script src="static/js/index.js"></script> -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" crossorigin="anonymous"></script>
+  </body>
+</html> 
