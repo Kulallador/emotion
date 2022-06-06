@@ -4,3 +4,4 @@ instance/
 files/
 python=*
 *.mp4
+ffmpeg*
