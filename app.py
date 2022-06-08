@@ -1,49 +1,30 @@
-import json
+# Модуль веб-сервера. Содержит роуты для обработки запросов.
+
 import os
+import subprocess
 import json
+from utils import validate_file, save_file, convert_file
 from classification import emotion_classification
-from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, send_from_directory, url_for
 
-app = Flask(__name__, instance_relative_config=True)
+app = Flask(__name__)
 app.config.from_object('config')
 app.config.from_pyfile('config.py')
 app.add_url_rule("/files/<name>", endpoint="download_file", build_only=True)
-port = int(os.environ.get("PORT", 5000))
 
 if not os.path.exists(app.config["UPLOAD_FOLDER"]):
     os.mkdir(app.config["UPLOAD_FOLDER"])
-
-def validate_file(filename):
-    val_types = ["mp4", "flv"]
-    file_type = filename.split(".")[-1]
-
-    return file_type in val_types
-
-def save_file(file):
-    filename = secure_filename(file.filename)
-    file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-    return filename 
-
-def convert_file(filename):
-    upload_folder = app.config["UPLOAD_FOLDER"]
-    name = filename.split(".")[0]
-    temp_filename = name + "_conv.mp4"
-    err_code = os.system(f"ffmpeg -i {upload_folder}/{filename} -vcodec libx264 -acodec aac {upload_folder}/{temp_filename}")
-    if err_code != 0:
-        raise Exception("Ошибка при конвертации видео")
     
-    new_filename = name + ".mp4"
-    os.remove(f"{upload_folder}/{filename}")
-    os.rename(f"{upload_folder}/{temp_filename}", f"{upload_folder}/{new_filename}")
-    return new_filename
+port = int(os.environ.get("PORT", 5000))
+
+subprocess.Popen(["ffmpeg"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 @app.route("/")
 def get_index():
     return render_template("index.html")
 
 @app.route("/emotion", methods=["POST"])
-def upload_file():
+def process_file():
     if "myFile" not in request.files:
         print("file not found")
         return json.dumps({
@@ -68,18 +49,17 @@ def upload_file():
             "emotion":None, 
             "error": f"Тип файла не поддерживается"
         })
+
+    upload_folder = app.config["UPLOAD_FOLDER"]
     
-    filename = save_file(file)
+    filename = save_file(upload_folder, file)
     file.close()
 
     emotion = ""
     try:
-        filename = convert_file(filename)
-        upload_folder = app.config["UPLOAD_FOLDER"]
+        filename = convert_file(upload_folder, filename)
         emotion = emotion_classification(
-            f"{upload_folder}/{filename}",
-            app.config["MODEL_PATH"],
-            app.config["CLASSIFICATOR"]
+            f"{upload_folder}/{filename}"
         )
 
     except Exception as e:

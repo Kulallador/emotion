@@ -1,32 +1,11 @@
+# Модуль, содеращий функции для классификации эмоций
+
 import cv2
 import librosa
-from utils import spectrogram_padding
+from utils import spectrogram_padding, get_scaled_bbox
 import numpy as np
 import tensorflow as tf
 import mediapipe as mp
-
-def get_normalize_bbox(detections, shape):
-    res = []
-    if not detections:
-        return res
-
-    for detection in detections:
-        relative_bbox = detection.location_data.relative_bounding_box
-        bbox = []
-
-        relative_bbox_list = [relative_bbox.xmin, relative_bbox.ymin, relative_bbox.width, relative_bbox.height] 
-        for i in range(len(relative_bbox_list)):
-            if relative_bbox_list[i] < 0:
-                bbox.append(0)
-                continue
-            
-            if i % 2 == 0:
-                bbox.append(int(relative_bbox_list[i] * shape[1]))
-            else:
-                bbox.append(int(relative_bbox_list[i] * shape[0]))
-                
-        res.append(bbox)
-    return res
 
 def get_faces_from_video(filepath, model_selection=0):
     mp_face_detection = mp.solutions.face_detection
@@ -46,7 +25,7 @@ def get_faces_from_video(filepath, model_selection=0):
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)        
             
             pred = face_model.process(image)
-            detections = get_normalize_bbox(pred.detections, image.shape)
+            detections = get_scaled_bbox(pred.detections, image.shape)
         
             image.flags.writeable = True
 
@@ -57,6 +36,7 @@ def get_faces_from_video(filepath, model_selection=0):
                 bbox = detections[0]
                 x, y, w, h = bbox
                 crop_faces.append(image_np[y:y+h, x:x+w])
+            
             
             if len(crop_faces) > 0 :
                 img = tf.image.resize(crop_faces[0], (48,48))
@@ -69,18 +49,18 @@ def get_faces_from_video(filepath, model_selection=0):
 
         return faces
 
-def emotion_classification(filepath, model_path, classificator_name):
-    class2idx =  {'angry':0, 'calm':1, 'disgust':2, 'fearful':3, 'happy':4, 'normal':5, 'sad':6, 'surprised':7}
+def emotion_classification(filepath):
+    class2idx =  {'Angry':0, 'Calm':1, 'Disgust':2, 'Fearful':3, 'Happy':4, 'Normal':5, 'Sad':6, 'Surprised':7}
     idx2class = {idx:name for name, idx in class2idx.items()}
 
 
-    emotion_by_image_model = tf.keras.models.load_model(f"{model_path}/resnet4.h5")
+    emotion_by_image_model = tf.keras.models.load_model(f"./models/resnet4.h5")
     feature_extractor = tf.keras.Model(
         inputs=emotion_by_image_model.inputs, 
         outputs=emotion_by_image_model.layers[-7].output
     )
 
-    classificator = tf.keras.models.load_model(f"{model_path}/{classificator_name}")
+    classificator = tf.keras.models.load_model(f"./models/rnn_rnn_song")
 
     faces = []
     for mode in [0, 1]:
@@ -91,7 +71,6 @@ def emotion_classification(filepath, model_path, classificator_name):
     if len(faces) == 0:
         raise Exception("Лицо не найдено")
         
-
     features = feature_extractor.predict(np.array(faces))
     amplitudes, sr = librosa.load(filepath, sr=16000, mono=True)
     spectrogram = librosa.feature.melspectrogram(y=amplitudes, n_mels=128, sr=sr, fmin=1, fmax=8192)
@@ -102,8 +81,9 @@ def emotion_classification(filepath, model_path, classificator_name):
             (tf.expand_dims(features, axis=0), tf.expand_dims(spectrogram, axis=0))
         ),
         axis=0
-    )
+    )    
 
     pred_class = np.argmax(pred)
     class_name = idx2class[pred_class]
+
     return class_name
