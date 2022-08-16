@@ -13,7 +13,7 @@ parser.add_argument("--input", help="path to data")
 parser.add_argument("--output", help="path to output data")
 
 def convert_video_data_to_np(data_path, seq_len=157):
-    emotion_model = tf.keras.models.load_model("models/resnet4.h5")
+    emotion_model = tf.keras.models.load_model("models/feature_extractor.h5")
     feature_extractor = tf.keras.Model(inputs=emotion_model.inputs, outputs=emotion_model.layers[-7].output)
 
     features = {}

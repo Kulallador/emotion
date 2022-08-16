@@ -30,7 +30,7 @@ def process_file():
         return json.dumps({
             "url":None, 
             "emotion":None, 
-            "error": "Файл не обнаружен в запросе"
+            "error": "File not found in request"
         })
     
     file = request.files["myFile"]
@@ -39,7 +39,7 @@ def process_file():
         return json.dumps({
             "url":None, 
             "emotion":None, 
-            "error": f"Файл не выбран"
+            "error": f"File not selected"
         })
 
     if not validate_file(file.filename):
@@ -47,7 +47,7 @@ def process_file():
         return json.dumps({
             "url":None, 
             "emotion":None, 
-            "error": f"Тип файла не поддерживается"
+            "error": f"File type not supported"
         })
 
     upload_folder = app.config["UPLOAD_FOLDER"]

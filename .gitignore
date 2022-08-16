@@ -5,3 +5,5 @@ files/
 python=*
 *.mp4
 ffmpeg*
+*.npy
+.ipynb_checkpoints
