@@ -34,6 +34,10 @@ source env/bin/activate
 ```
 pip install -r requirements.txt
 ```
+В config.py записываем путь для хранения файлов
+```
+UPLOAD_FOLDER = 'path/to/files'
+```
 
 Запускаем приложение 
 ```
